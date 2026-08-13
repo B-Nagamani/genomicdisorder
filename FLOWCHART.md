@@ -2,7 +2,7 @@
 
 Below is a simple diagram that shows how the pieces interact at runtime and during model training. Paste this into any Markdown viewer that supports Mermaid to see it rendered.
 
-```mermaid
+
 flowchart LR
   subgraph UI[User interface]
     A[Landing page] --> B[Login / Register]
@@ -27,8 +27,3 @@ flowchart LR
     L --> G
     N[`prepare_and_train.py`] --> O[full-feature artifacts & TabNet models]
   end
-```
-
-Notes:
-- The diagram focuses on the top-10 feature path used by the running app. Full training scripts produce additional artifacts that can be integrated if needed.
-- If you want this exported as an SVG/PNG I can render it and add the image to the repo.

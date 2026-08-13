@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Result</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Include Chart.js for the Pie Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.5);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.15), transparent 50%),
+                radial-gradient(circle at 50% 100%, rgba(139, 92, 246, 0.15), transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .result-wrapper {
+            display: flex;
+            gap: 2rem;
+            width: 90%;
+            max-width: 1100px;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .result-card {
+            flex: 1;
+            min-width: 350px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 3rem 2.5rem;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(to right, #38bdf8, #8b5cf6);
+        }
+
+        .label {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .prediction {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin: 0 0 1.5rem 0;
+            background: linear-gradient(to right, #38bdf8, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+
+        .confidence {
+            font-size: 1.3rem;
+            color: var(--success);
+            font-weight: 600;
+            margin-bottom: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .error-msg {
+            color: var(--error);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+
+        .back-btn {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            padding: 1rem 3rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 2rem;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(56, 189, 248, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="result-wrapper">
+        {% if error %}
+            <div class="result-card" style="width: 100%;">
+                <div class="label">Error in Prediction</div>
+                <div class="error-msg">{{ error }}</div>
+                <a href="/dashboard" class="back-btn">Start New Analysis</a>
+            </div>
+        {% else %}
+            <!-- Primary Disorder Card -->
+            <div class="result-card">
+                <div class="label">Predicted Disorder Type</div>
+                <h2 class="prediction">{{ prediction }}</h2>
+                <div class="confidence">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    {{ confidence }}% Confidence
+                </div>
+                <a href="/dashboard" class="back-btn">Start New Analysis</a>
+            </div>
+
+            <!-- Subclass Pie Chart Card -->
+            <div class="result-card">
+                <div class="label">Specific Disease Probabilities</div>
+                <div class="chart-container">
+                    <canvas id="subclassChart"></canvas>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if not error %}
+    <script>
+        const ctx = document.getElementById('subclassChart').getContext('2d');
+        
+        // Jinja variables injected from Flask
+        const labels = {{ subclasses.keys() | list | tojson }};
+        const data = {{ subclasses.values() | list | tojson }};
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        'rgba(56, 189, 248, 0.8)',
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(239, 68, 68, 0.8)'
+                    ],
+                    borderColor: 'rgba(15, 23, 42, 1)',
+                    borderWidth: 2,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#f8fafc',
+                            font: { family: 'Outfit', size: 13, weight: '300' },
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' ' + context.label + ': ' + context.raw + '%';
+                            }
+                        },
+                        bodyFont: { family: 'Outfit', size: 14 },
+                        padding: 12,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#38bdf8'
+                    }
+                },
+                layout: { padding: 10 }
+            }
+        });
+    </script>
+    {% endif %}
+</body>
+</html>

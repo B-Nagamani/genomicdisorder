@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gene AI - Clinical Genetic Screening</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --accent-blue: #38bdf8;
+            --accent-purple: #8b5cf6;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Canvas Background */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* Ambient Glow */
+        .ambient {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1;
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.05), transparent 40%),
+                radial-gradient(circle at 85% 50%, rgba(139, 92, 246, 0.05), transparent 40%);
+            pointer-events: none;
+        }
+
+        /* Foreground Content */
+        .content {
+            text-align: center;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 4rem;
+            border-radius: 24px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 800px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-blue);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            line-height: 1.2;
+            margin: 0 0 1.5rem 0;
+            color: white;
+        }
+
+        h1 span {
+            background: linear-gradient(to right, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.description {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+        }
+
+        .trusted-by {
+            margin-bottom: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .trusted-by p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+        }
+
+        .btn {
+            text-decoration: none;
+            padding: 1.2rem 3rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            box-shadow: 0 10px 20px -10px rgba(56, 189, 248, 0.5);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px -10px rgba(56, 189, 248, 0.7);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body>
+    <!-- DNA Canvas -->
+    <canvas id="dna"></canvas>
+    
+    <div class="ambient"></div>
+
+    <div class="content">
+        <div class="badge">Clinical Intelligence Platform</div>
+        <h1>Actionable Genetic Insights for <span>Precision Medicine</span></h1>
+        
+        <p class="description">
+            Empowering modern clinical genomics. Used by healthcare providers to screen patient data and accurately predict Mitochondrial, Single-gene, and Multifactorial inheritance risks using state-of-the-art predictive algorithms.
+        </p>
+
+        <div class="trusted-by">
+            <p>Validated by Next-Gen Sequencing Protocols</p>
+        </div>
+        
+        <div class="btn-group">
+            <a href="/login" class="btn btn-primary">Physician Login</a>
+            <a href="/register" class="btn btn-secondary">Request Access</a>
+        </div>
+    </div>
+
+    <!-- JavaScript for DNA Animation -->
+    <script>
+        const canvas = document.getElementById('dna');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let particles = [];
+        
+        // DNA Configuration
+        const config = {
+            numStrands: 2,
+            particlesPerStrand: 60,
+            ySpacing: 25,
+            xRadius: 150,
+            zRadius: 50,
+            rotationSpeed: 0.02,
+            phaseOffset: Math.PI // 180 degrees offset for the double helix
+        };
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        let time = 0;
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+            
+            // We want the DNA to be in the center, a bit to the right or left maybe? Let's just center it.
+            const centerX = width / 2;
+            const centerY = height / 2 - (config.particlesPerStrand * config.ySpacing) / 2;
+
+            let points = [];
+
+            // Calculate points for both strands
+            for(let s = 0; s < config.numStrands; s++) {
+                const phase = s * config.phaseOffset;
+                
+                for(let i = 0; i < config.particlesPerStrand; i++) {
+                    const y = centerY + i * config.ySpacing;
+                    
+                    // Add some wave logic
+                    const wavePhase = (i * 0.2) + time;
+                    const x = centerX + Math.sin(wavePhase + phase) * config.xRadius;
+                    const z = Math.cos(wavePhase + phase) * config.zRadius;
+                    
+                    points.push({
+                        x: x,
+                        y: y,
+                        z: z,
+                        strand: s,
+                        index: i
+                    });
+                }
+            }
+
+            // Sort points by Z index for 3D depth effect (painters algorithm)
+            points.sort((a, b) => a.z - b.z);
+
+            // Draw connecting lines between the strands first
+            ctx.lineWidth = 1.5;
+            for(let i = 0; i < config.particlesPerStrand; i++) {
+                const p1 = points.find(p => p.strand === 0 && p.index === i);
+                const p2 = points.find(p => p.strand === 1 && p.index === i);
+                
+                if(p1 && p2) {
+                    // Alpha based on average Z depth
+                    const avgZ = (p1.z + p2.z) / 2;
+                    const alpha = (avgZ + config.zRadius) / (config.zRadius * 2) * 0.5 + 0.1;
+                    
+                    // Create gradient line between the two nodes
+                    const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+                    grad.addColorStop(0, `rgba(56, 189, 248, ${alpha})`); // blue
+                    grad.addColorStop(1, `rgba(139, 92, 246, ${alpha})`); // purple
+                    
+                    ctx.strokeStyle = grad;
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            }
+
+            // Draw the nodes
+            for(let p of points) {
+                const scale = (p.z + config.zRadius) / (config.zRadius * 2) * 0.8 + 0.4;
+                const alpha = (p.z + config.zRadius) / (config.zRadius * 2) * 0.8 + 0.2;
+                
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4 * scale, 0, Math.PI * 2);
+                
+                if (p.strand === 0) {
+                    ctx.fillStyle = `rgba(56, 189, 248, ${alpha})`;
+                    ctx.shadowColor = 'rgba(56, 189, 248, 0.8)';
+                } else {
+                    ctx.fillStyle = `rgba(139, 92, 246, ${alpha})`;
+                    ctx.shadowColor = 'rgba(139, 92, 246, 0.8)';
+                }
+                
+                ctx.shadowBlur = 10 * scale;
+                ctx.fill();
+            }
+
+            time += config.rotationSpeed;
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>
